@@ -1,0 +1,219 @@
+services:
+
+  # ---------------------------------------------------------------------------
+  # INFRASTRUCTURE — start these first: docker-compose up -d postgres redpanda redis
+  # ---------------------------------------------------------------------------
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - broker-network
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --overprovisioned
+      - --smp=1
+      - --memory=512M
+      - --reserve-memory=0M
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:${REDPANDA_KAFKA_EXTERNAL_PORT:-19092}
+    ports:
+      - "${REDPANDA_KAFKA_PORT:-9092}:9092"
+      - "${REDPANDA_KAFKA_EXTERNAL_PORT:-19092}:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - broker-network
+
+  redpanda-init:
+    image: redpandadata/redpanda:latest
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      rpk --brokers redpanda:9092 topic create order.created order.accepted order.rejected order.filled \
+        market.price.updated portfolio.updated notification.created \
+        --if-not-exists
+      "
+    networks:
+      - broker-network
+    restart: on-failure
+
+  redpanda-console:
+    image: redpandadata/console:latest
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "${REDPANDA_CONSOLE_PORT:-8090}:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - broker-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - broker-network
+
+  # ---------------------------------------------------------------------------
+  # APPLICATION SERVICES
+  # Clone each repo as a sibling of this deploy/ directory, then uncomment.
+  # Parent layout expected:
+  #   parent/
+  #     deploy/           ← this repo
+  #     API-gateway/      ← Person 2
+  #     auth-service/     ← Person 2 (create this repo)
+  #     order-service/    ← Person 3
+  #     wallet-service/   ← Person 3
+  #     portfolio-service/← Person 4
+  #     market-notifications/ ← Person 4
+  #     frontend/         ← Person 1
+  # ---------------------------------------------------------------------------
+
+  api-gateway:
+    build: ../API-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8000}:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:8001
+      ORDER_SERVICE_URL: http://order-service:8002
+      WALLET_SERVICE_URL: http://wallet-service:8003
+      PORTFOLIO_SERVICE_URL: http://portfolio-service:8004
+      MARKET_NOTIFICATIONS_URL: http://market-notifications:8005
+    depends_on:
+      - auth-service
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  auth-service:
+    build: ../auth-service
+    ports:
+      - "${AUTH_SERVICE_PORT:-8001}:8001"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  order-service:
+    build: ../order-service
+    ports:
+      - "${ORDER_SERVICE_PORT:-8002}:8002"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/orders_db
+      KAFKA_BROKERS: redpanda:9092
+      EXCHANGE_REST_API_URL: ${EXCHANGE_REST_API_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  wallet-service:
+    build: ../wallet-service
+    ports:
+      - "${WALLET_SERVICE_PORT:-8003}:8003"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/wallet_db
+      KAFKA_BROKERS: redpanda:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  portfolio-service:
+    build: ../portfolio-service
+    ports:
+      - "${PORTFOLIO_SERVICE_PORT:-8004}:8004"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/portfolio_db
+      KAFKA_BROKERS: redpanda:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  market-notifications:
+    build: ../market-notifications
+    ports:
+      - "${MARKET_NOTIFICATIONS_PORT:-8005}:8005"
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      EXCHANGE_WS_URL: ${EXCHANGE_WS_URL}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  frontend:
+    build: ../frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      REACT_APP_GATEWAY_URL: http://localhost:${API_GATEWAY_PORT:-8000}
+    depends_on:
+      - api-gateway
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  broker-network:
+    driver: bridge
