@@ -129,9 +129,7 @@ services:
   # ---------------------------------------------------------------------------
 
   api-gateway:
-    build:
-      context: ../api-gateway
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/api-gateway:latest
     ports:
       - "${API_GATEWAY_PORT:-8000}:8080"
     environment:
@@ -155,9 +153,7 @@ services:
     restart: unless-stopped
 
   auth-service:
-    build:
-      context: ../auth-service
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/auth-service:latest
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:8000"
     environment:
@@ -174,9 +170,7 @@ services:
     restart: unless-stopped
 
   order-service:
-    build:
-      context: ../order-service
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/order-service:latest
     ports:
       - "${ORDER_SERVICE_PORT:-8002}:8002"
     environment:
@@ -206,9 +200,7 @@ services:
     restart: unless-stopped
 
   wallet-service:
-    build:
-      context: ../wallet-service
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/wallet-service:latest
     ports:
       - "${WALLET_SERVICE_PORT:-8003}:8003"
     environment:
@@ -224,9 +216,7 @@ services:
     restart: unless-stopped
 
   portfolio-service:
-    build:
-      context: ../portfolio-service
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/portfolio-service:latest
     ports:
       - "${PORTFOLIO_SERVICE_PORT:-8004}:8004"
     environment:
@@ -256,9 +246,7 @@ services:
     restart: unless-stopped
 
   market-notifications:
-    build:
-      context: ../market-notifications
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/market-notifications:latest
     ports:
       - "${MARKET_NOTIFICATIONS_PORT:-8005}:8005"
     environment:
@@ -286,9 +274,7 @@ services:
     restart: unless-stopped
 
   price-history-service:
-    build:
-      context: ../price-history-service
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/price-history-service:latest
     ports:
       - "${PRICE_HISTORY_SERVICE_PORT:-3001}:3001"
     environment:
@@ -304,9 +290,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/lynx-spring-practice-team1/frontend:latest
     ports:
       - "${FRONTEND_PORT:-3000}:5173"
     environment:
