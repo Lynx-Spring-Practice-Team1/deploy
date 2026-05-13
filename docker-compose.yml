@@ -129,7 +129,9 @@ services:
   # ---------------------------------------------------------------------------
 
   api-gateway:
-    image: ghcr.io/lynx-spring-practice-team1/api-gateway:latest
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
     ports:
       - "${API_GATEWAY_PORT:-8000}:8080"
     environment:
@@ -153,7 +155,9 @@ services:
     restart: unless-stopped
 
   auth-service:
-    image: ghcr.io/lynx-spring-practice-team1/auth-service:latest
+    build:
+      context: ../auth-service
+      dockerfile: Dockerfile
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:8000"
     environment:
@@ -170,7 +174,9 @@ services:
     restart: unless-stopped
 
   order-service:
-    image: ghcr.io/lynx-spring-practice-team1/order-service:latest
+    build:
+      context: ../order-service
+      dockerfile: Dockerfile
     ports:
       - "${ORDER_SERVICE_PORT:-8002}:8002"
     environment:
@@ -200,7 +206,9 @@ services:
     restart: unless-stopped
 
   wallet-service:
-    image: ghcr.io/lynx-spring-practice-team1/wallet-service:latest
+    build:
+      context: ../wallet-service
+      dockerfile: Dockerfile
     ports:
       - "${WALLET_SERVICE_PORT:-8003}:8003"
     environment:
@@ -216,7 +224,9 @@ services:
     restart: unless-stopped
 
   portfolio-service:
-    image: ghcr.io/lynx-spring-practice-team1/portfolio-service:latest
+    build:
+      context: ../portfolio-service
+      dockerfile: Dockerfile
     ports:
       - "${PORTFOLIO_SERVICE_PORT:-8004}:8004"
     environment:
@@ -246,7 +256,9 @@ services:
     restart: unless-stopped
 
   market-notifications:
-    image: ghcr.io/lynx-spring-practice-team1/market-notifications:latest
+    build:
+      context: ../market-notifications
+      dockerfile: Dockerfile
     ports:
       - "${MARKET_NOTIFICATIONS_PORT:-8005}:8005"
     environment:
@@ -257,6 +269,7 @@ services:
       EXCHANGE_WS_API_KEY: ${EXCHANGE_API_KEY}
       EXCHANGE_WS_API_SECRET: ${EXCHANGE_API_SECRET}
       MARKET_WS_ENABLED: "true"
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -273,7 +286,9 @@ services:
     restart: unless-stopped
 
   price-history-service:
-    image: ghcr.io/lynx-spring-practice-team1/price-history-service:latest
+    build:
+      context: ../price-history-service
+      dockerfile: Dockerfile
     ports:
       - "${PRICE_HISTORY_SERVICE_PORT:-3001}:3001"
     environment:
@@ -289,14 +304,13 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/lynx-spring-practice-team1/frontend:latest
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-3000}:5173"
     environment:
       API_TARGET: http://api-gateway:8080
-      VITE_EXCHANGE_WS_URL: ${VITE_EXCHANGE_WS_URL}
-      VITE_WS_KEY: ${EXCHANGE_API_KEY}
-      VITE_WS_SECRET: ${EXCHANGE_API_SECRET}
     depends_on:
       - api-gateway
     networks:
