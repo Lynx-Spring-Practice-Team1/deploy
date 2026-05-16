@@ -298,8 +298,8 @@ services:
       - broker-network
     restart: unless-stopped
 
-  admin-service:
-    image: ghcr.io/lynx-spring-practice-team1/admin-service:latest
+  admin-panel:
+    image: ghcr.io/lynx-spring-practice-team1/admin-panel:latest
     ports:
       - "${ADMIN_SERVICE_PORT:-8006}:8006"
     environment:
@@ -325,9 +325,7 @@ services:
   frontend:
     image: ghcr.io/lynx-spring-practice-team1/frontend:latest
     ports:
-      - "${FRONTEND_PORT:-3000}:5173"
-    environment:
-      API_TARGET: http://api-gateway:8080
+      - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - api-gateway
     networks:
