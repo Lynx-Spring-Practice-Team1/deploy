@@ -124,6 +124,7 @@ services:
   #     wallet-service/
   #     portfolio-service/
   #     market-notifications/
+  #     admin-service/
   #     price-history-service/
   #     frontend/
   # ---------------------------------------------------------------------------
@@ -140,6 +141,8 @@ services:
       PORTFOLIO_SERVICE_URL: http://portfolio-service:8004
       MARKET_NOTIFICATIONS_URL: http://market-notifications:8005
       PRICE_HISTORY_SERVICE_URL: http://price-history-service:3001
+      ADMIN_SERVICE_URL: http://admin-service:8006
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
     depends_on:
       - auth-service
       - order-service
@@ -147,6 +150,7 @@ services:
       - portfolio-service
       - market-notifications
       - price-history-service
+      - admin-service
       - redis
     networks:
       - broker-network
@@ -160,6 +164,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-60}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -182,6 +187,7 @@ services:
       EXCHANGE_API_SECRET: ${EXCHANGE_API_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       WALLET_SERVICE_URL: http://wallet-service:8003
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -206,6 +212,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/wallet_db
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -228,6 +235,7 @@ services:
       MARKET_WS_URL: ${EXCHANGE_WS_URL}
       MARKET_WS_API_KEY: ${EXCHANGE_API_KEY}
       MARKET_WS_API_SECRET: ${EXCHANGE_API_SECRET}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -258,6 +266,7 @@ services:
       EXCHANGE_WS_API_SECRET: ${EXCHANGE_API_SECRET}
       MARKET_WS_ENABLED: "true"
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -285,6 +294,30 @@ services:
         condition: service_healthy
       postgres-init:
         condition: service_completed_successfully
+    networks:
+      - broker-network
+    restart: unless-stopped
+
+  admin-service:
+    image: ghcr.io/lynx-spring-practice-team1/admin-service:latest
+    ports:
+      - "${ADMIN_SERVICE_PORT:-8006}:8006"
+    environment:
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-change-me-admin-session-secret}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      AUTH_SERVICE_URL: http://auth-service:8000
+      ORDER_SERVICE_URL: http://order-service:8002
+      WALLET_SERVICE_URL: http://wallet-service:8003
+      PORTFOLIO_SERVICE_URL: http://portfolio-service:8004
+      MARKET_NOTIFICATIONS_URL: http://market-notifications:8005
+    depends_on:
+      - auth-service
+      - order-service
+      - wallet-service
+      - portfolio-service
+      - market-notifications
     networks:
       - broker-network
     restart: unless-stopped
