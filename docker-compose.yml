@@ -264,6 +264,7 @@ services:
       EXCHANGE_WS_URL: ${EXCHANGE_WS_URL}
       EXCHANGE_WS_API_KEY: ${EXCHANGE_API_KEY}
       EXCHANGE_WS_API_SECRET: ${EXCHANGE_API_SECRET}
+      PRICE_FEED_ALL_TICKERS: ${PRICE_FEED_ALL_TICKERS:-false}
       MARKET_WS_ENABLED: "true"
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
@@ -298,8 +299,11 @@ services:
       - broker-network
     restart: unless-stopped
 
-  admin-panel:
-    image: ghcr.io/lynx-spring-practice-team1/admin-panel:latest
+  admin-service:
+    build:
+      context: ../admin-service
+      dockerfile: Dockerfile
+    image: broker-admin-service:local
     ports:
       - "${ADMIN_SERVICE_PORT:-8006}:8006"
     environment:
@@ -323,7 +327,10 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/lynx-spring-practice-team1/frontend:latest
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: broker-frontend:local
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
