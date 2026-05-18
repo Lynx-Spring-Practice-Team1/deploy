@@ -61,8 +61,8 @@ services:
       - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
       - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:${REDPANDA_KAFKA_EXTERNAL_PORT:-19093}
     ports:
-      - "${REDPANDA_KAFKA_PORT:-9093}:9092"
-      - "${REDPANDA_KAFKA_EXTERNAL_PORT:-19093}:19092"
+      - "127.0.0.1:${REDPANDA_KAFKA_PORT:-9093}:9092"
+      - "127.0.0.1:${REDPANDA_KAFKA_EXTERNAL_PORT:-19093}:19092"
     healthcheck:
       test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
       interval: 15s
@@ -94,7 +94,7 @@ services:
     environment:
       KAFKA_BROKERS: redpanda:9092
     ports:
-      - "${REDPANDA_CONSOLE_PORT:-8090}:8080"
+      - "127.0.0.1:${REDPANDA_CONSOLE_PORT:-8090}:8080"
     depends_on:
       redpanda:
         condition: service_healthy
@@ -104,7 +104,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -142,7 +142,7 @@ services:
       MARKET_NOTIFICATIONS_URL: http://market-notifications:8005
       PRICE_HISTORY_SERVICE_URL: http://price-history-service:3001
       ADMIN_SERVICE_URL: http://admin-service:8006
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       - auth-service
       - order-service
@@ -159,12 +159,12 @@ services:
   auth-service:
     image: ghcr.io/lynx-spring-practice-team1/auth-service:latest
     ports:
-      - "${AUTH_SERVICE_PORT:-8001}:8000"
+      - "127.0.0.1:${AUTH_SERVICE_PORT:-8001}:8000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-60}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,7 +177,7 @@ services:
   order-service:
     image: ghcr.io/lynx-spring-practice-team1/order-service:latest
     ports:
-      - "${ORDER_SERVICE_PORT:-8002}:8002"
+      - "127.0.0.1:${ORDER_SERVICE_PORT:-8002}:8002"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/orders_db
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
@@ -187,7 +187,7 @@ services:
       EXCHANGE_API_SECRET: ${EXCHANGE_API_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       WALLET_SERVICE_URL: http://wallet-service:8003
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -208,11 +208,11 @@ services:
   wallet-service:
     image: ghcr.io/lynx-spring-practice-team1/wallet-service:latest
     ports:
-      - "${WALLET_SERVICE_PORT:-8003}:8003"
+      - "127.0.0.1:${WALLET_SERVICE_PORT:-8003}:8003"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/wallet_db
       JWT_SECRET: ${JWT_SECRET}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -225,7 +225,7 @@ services:
   portfolio-service:
     image: ghcr.io/lynx-spring-practice-team1/portfolio-service:latest
     ports:
-      - "${PORTFOLIO_SERVICE_PORT:-8004}:8004"
+      - "127.0.0.1:${PORTFOLIO_SERVICE_PORT:-8004}:8004"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/portfolio_db
       KAFKA_ENABLED: "true"
@@ -235,7 +235,8 @@ services:
       MARKET_WS_URL: ${EXCHANGE_WS_URL}
       MARKET_WS_API_KEY: ${EXCHANGE_API_KEY}
       MARKET_WS_API_SECRET: ${EXCHANGE_API_SECRET}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -256,7 +257,7 @@ services:
   market-notifications:
     image: ghcr.io/lynx-spring-practice-team1/market-notifications:latest
     ports:
-      - "${MARKET_NOTIFICATIONS_PORT:-8005}:8005"
+      - "127.0.0.1:${MARKET_NOTIFICATIONS_PORT:-8005}:8005"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/market_notifications_db
       KAFKA_ENABLED: "true"
@@ -267,7 +268,7 @@ services:
       PRICE_FEED_ALL_TICKERS: ${PRICE_FEED_ALL_TICKERS:-false}
       MARKET_WS_ENABLED: "true"
       JWT_SECRET: ${JWT_SECRET}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -286,7 +287,7 @@ services:
   price-history-service:
     image: ghcr.io/lynx-spring-practice-team1/price-history-service:latest
     ports:
-      - "${PRICE_HISTORY_SERVICE_PORT:-3001}:3001"
+      - "127.0.0.1:${PRICE_HISTORY_SERVICE_PORT:-3001}:3001"
     environment:
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/price_history_db
@@ -305,12 +306,12 @@ services:
       dockerfile: Dockerfile
     image: broker-admin-service:local
     ports:
-      - "${ADMIN_SERVICE_PORT:-8006}:8006"
+      - "127.0.0.1:${ADMIN_SERVICE_PORT:-8006}:8006"
     environment:
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
-      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-change-me-admin-session-secret}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-in-production}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
       AUTH_SERVICE_URL: http://auth-service:8000
       ORDER_SERVICE_URL: http://order-service:8002
       WALLET_SERVICE_URL: http://wallet-service:8003
